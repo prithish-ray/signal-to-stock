@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -462,6 +462,7 @@
   <div class="header-text">
     <h1>Macro-to-Company Transmission Tester</h1>
     <p>Trace macro shocks through industries to listed company earnings — with visible reasoning</p>
+
   </div>
   <span class="badge">Powered by Groq + Tavily</span>
 </header>
@@ -481,16 +482,14 @@
       />
       <button class="btn-analyze" id="analyzeBtn" onclick="startAnalysis()">
         <span id="btnSpinner" class="spinner hidden"></span>
-        <span id="btnText">Analyze →</span>
+        <span id="btnText">Analyse →</span>
       </button>
     </div>
-    <div class="examples">
-      <span>Try:</span>
-      <div class="chip" onclick="setExample(this)">US ISM Manufacturing falls to 46</div>
-      <div class="chip" onclick="setExample(this)">OPEC cuts production by 500k bbl/day</div>
-      <div class="chip" onclick="setExample(this)">Fed raises rates by 50bps unexpectedly</div>
-      <div class="chip" onclick="setExample(this)">China PMI drops to 48.5</div>
-      <div class="chip" onclick="setExample(this)">US 10-year yield spikes to 5.5%</div>
+    <!-- Dynamic live macro news chips -->
+    <div class="examples" id="examplesRow">
+      <span id="chipsLabel" style="font-size:12px;color:var(--muted);align-self:center">
+        <span class="spinner" style="width:10px;height:10px;border-width:1.5px;display:inline-block;vertical-align:middle;margin-right:6px"></span>Loading live events…
+      </span>
     </div>
   </div>
 
@@ -586,6 +585,32 @@ const STEP_DEFS = [
   { id: 5, label: "Analyst synthesis",             detail: "Writing transmission map narrative" },
 ];
 
+// ── Load live macro news chips on page load ────────────────────────────────
+async function loadMacroNewsChips() {
+  try {
+    const resp = await fetch("/macro-news");
+    const data = await resp.json();
+    const events = data.events || [];
+    const row = document.getElementById("examplesRow");
+
+    if (!events.length) {
+      document.getElementById("chipsLabel").textContent = "Live events unavailable";
+      return;
+    }
+
+    row.innerHTML = '<span style="font-size:12px;color:var(--muted);align-self:center">Live:</span>';
+    events.forEach(ev => {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.textContent = ev;
+      chip.onclick = () => setExample(chip);
+      row.appendChild(chip);
+    });
+  } catch (e) {
+    document.getElementById("chipsLabel").textContent = "Could not load live events";
+  }
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 function initSteps() {
   const list = document.getElementById("stepsList");
@@ -667,7 +692,7 @@ function startAnalysis() {
   // Reset UI
   document.getElementById("analyzeBtn").disabled = true;
   document.getElementById("btnSpinner").classList.remove("hidden");
-  document.getElementById("btnText").textContent = "Analyzing…";
+  document.getElementById("btnText").textContent = "Analysing…";
   document.getElementById("logBox").innerHTML = "";
   document.getElementById("traceStatus").textContent = "Running";
   document.getElementById("mapPanel").classList.remove("hidden");
@@ -676,7 +701,7 @@ function startAnalysis() {
   logCount = 0;
 
   // POST → SSE
-  fetch("/analyze", {
+  fetch("/analyse", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ event }),
@@ -900,12 +925,13 @@ function renderFinalMap(msg) {
 function resetBtn() {
   document.getElementById("analyzeBtn").disabled = false;
   document.getElementById("btnSpinner").classList.add("hidden");
-  document.getElementById("btnText").textContent = "Analyze →";
+  document.getElementById("btnText").textContent = "Analyse →";
 }
 
 // Allow Enter key to trigger analysis
 document.addEventListener("DOMContentLoaded", () => {
   initSteps();
+  loadMacroNewsChips();
   document.getElementById("eventInput").addEventListener("keydown", e => {
     if (e.key === "Enter") startAnalysis();
   });

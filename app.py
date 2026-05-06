@@ -1,13 +1,12 @@
 """
 Macro-to-Company Transmission Tester
-Flask backend — serves the UI and streams SSE events from the agent.
+Flask backend with SSE streaming.
 """
 
 import os
 import json
 from flask import Flask, render_template, request, Response, stream_with_context
-
-from agent import MacroTransmissionAgent
+from agent import MacroTransmissionAgent, fetch_recent_macro_events
 
 app = Flask(__name__)
 
@@ -17,9 +16,18 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/analyze", methods=["POST"])
-def analyze():
-    data        = request.get_json(silent=True) or {}
+@app.route("/macro-news")
+def macro_news():
+    try:
+        events = fetch_recent_macro_events()
+        return {"events": events}
+    except Exception as e:
+        return {"events": [], "error": str(e)}, 500
+
+
+@app.route("/analyse", methods=["POST"])
+def analyse():
+    data = request.get_json(silent=True) or {}
     macro_event = data.get("event", "").strip()
 
     if not macro_event:
@@ -28,20 +36,20 @@ def analyze():
     def generate():
         try:
             agent = MacroTransmissionAgent()
-            for step in agent.analyze(macro_event):
-                yield f"data: {json.dumps(step)}\n\n"
+            for step in agent.analyse(macro_event):
+                yield "data: " + json.dumps(step) + "\n\n"
         except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            yield "data: " + json.dumps({"type": "error", "message": str(e)}) + "\n\n"
         finally:
-            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            yield "data: " + json.dumps({"type": "done"}) + "\n\n"
 
     return Response(
         stream_with_context(generate()),
         content_type="text/event-stream",
         headers={
-            "Cache-Control":    "no-cache",
+            "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
-            "Connection":       "keep-alive",
+            "Connection": "keep-alive",
         },
     )
 
