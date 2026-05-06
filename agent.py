@@ -40,9 +40,9 @@ def _safe_json(raw, fallback):
 
 
 SYSTEM_PROMPT = """You are a senior macroeconomic analyst at a top-tier hedge fund.
-Your speciality is tracing transmission mechanisms — how macro shocks propagate
-through industries and eventually appear on specific company income statements and
-balance sheets.
+Your speciality is tracing transmission mechanisms — how macro events, industry shifts,
+supply chain dynamics, and pricing-power changes propagate through industries and
+eventually appear on specific company income statements and balance sheets.
 
 Rules:
 - Always explain the causal chain step-by-step (A to B to C).
@@ -100,7 +100,7 @@ class MacroTransmissionAgent:
         yield {
             "type": "step_start",
             "step": 1,
-            "title": "Searching for macro event context",
+            "title": "Searching for signal context",
             "detail": "Running two Tavily queries for \"" + macro_event + "\"",
         }
 
@@ -124,14 +124,14 @@ class MacroTransmissionAgent:
         yield {
             "type": "step_start",
             "step": 2,
-            "title": "Identifying primary (first-order) affected industries",
+            "title": "Identifying primary (first-order) affected industries & sectors",
             "detail": "Reasoning about direct causal mechanisms and financial line-item impacts...",
         }
 
         primary_prompt = (
-            "Macro event: " + macro_event + "\n\n"
+            "Signal / development: " + macro_event + "\n\n"
             "Recent news / research context:\n" + combined_context[:3500] + "\n\n"
-            "Task: Identify 4-6 PRIMARY industries DIRECTLY hit by this macro event.\n\n"
+            "Task: Identify 4-6 PRIMARY industries or sectors DIRECTLY hit by this signal or development.\n\n"
             "For EACH industry provide:\n"
             "1. The exact causal mechanism.\n"
             "2. Which financial line item is affected.\n"
@@ -181,7 +181,7 @@ class MacroTransmissionAgent:
         sc_context = self._fmt_results(r3)
 
         second_prompt = (
-            "Macro event: " + macro_event + "\n\n"
+            "Signal / development: " + macro_event + "\n\n"
             "Primary industries and their direct impacts:\n"
             + json.dumps(primary_data.get("primary_industries", []), indent=2) + "\n\n"
             "Additional supply-chain / sector context:\n" + sc_context[:2500] + "\n\n"
@@ -238,7 +238,7 @@ class MacroTransmissionAgent:
         company_context = "\n\n".join(company_context_parts)
 
         company_prompt = (
-            "Macro event: " + macro_event + "\n\n"
+            "Signal / development: " + macro_event + "\n\n"
             "Industry impact summary:\n"
             "Primary:   " + json.dumps(primary_data.get("primary_industries", []), indent=2) + "\n"
             "Secondary: " + json.dumps(second_data.get("second_order_industries", []), indent=2) + "\n\n"
@@ -280,7 +280,7 @@ class MacroTransmissionAgent:
         }
 
         synthesis_prompt = (
-            "You have completed a full macro transmission analysis for:\n"
+            "You have completed a full signal-to-stock transmission analysis for:\n"
             "\"" + macro_event + "\"\n\n"
             "Event summary: " + primary_data.get("event_summary", "") + "\n"
             "Primary industries: " + json.dumps(primary_data.get("primary_industries", []), indent=2) + "\n"
@@ -326,6 +326,7 @@ def fetch_recent_macro_events():
     queries = [
         "major macroeconomic data release market moving news today 2026",
         "central bank decision inflation GDP PMI economic report this week",
+        "industry disruption supply chain pricing power technology shift earnings impact 2026",
     ]
 
     snippets = []
@@ -347,10 +348,10 @@ def fetch_recent_macro_events():
     context = "\n".join(snippets[:14])
 
     prompt = (
-        "Below are recent financial news headlines. Extract the 5-6 most significant "
-        "MACRO ECONOMIC events — central bank decisions, major data releases (CPI, GDP, PMI, NFP, "
-        "trade balance etc.), commodity supply shocks, or geopolitical events with clear economic "
-        "consequences.\n\n"
+        "Below are recent financial news headlines and market developments. Extract the 5-6 most "
+        "significant signals — these can be macro events (central bank decisions, CPI, GDP, PMI, NFP), "
+        "commodity or supply shocks, industry shifts (pricing power changes, technology disruption, "
+        "demand destruction), or geopolitical events with clear economic consequences.\n\n"
         "Format each as a crisp, factual statement of 8-15 words, e.g.:\n"
         "- \"US CPI rises to 3.4% YoY in April, above consensus\"\n"
         "- \"Fed holds rates at 5.25%, signals one cut in 2025\"\n"

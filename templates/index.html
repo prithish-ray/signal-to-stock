@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Macro-to-Company Transmission Tester</title>
+  <title>Signal-to-Stock</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -338,8 +338,8 @@
 <header>
   <div class="logo">🌐</div>
   <div class="header-text">
-    <h1>Macro-to-Company Transmission Tester</h1>
-    <p>Trace macro shocks through industries to listed company earnings</p>
+    <h1>Signal-to-Stock</h1>
+    <p>Trace any market signal or industry shift through to listed company earnings</p>
   </div>
   <span class="header-badge">Groq + Tavily</span>
 </header>
@@ -347,10 +347,10 @@
 <main>
   <!-- INPUT -->
   <div class="input-panel">
-    <label for="eventInput">Enter a macro event</label>
+    <label for="eventInput">Enter a market signal or industry development</label>
     <div class="input-row">
       <input id="eventInput" type="text" autocomplete="off"
-        placeholder='e.g. "US ISM Manufacturing falls to 46" or "OPEC cuts 500k bbl/day"'/>
+        placeholder='e.g. "Memory suppliers gaining pricing power as hyperscalers compete for supply" or "Fed raises rates 50bps"'/>
       <button class="btn-analyse" id="analyseBtn" onclick="startAnalysis()">
         <span id="btnSpinner" class="spinner" style="display:none"></span>
         <span id="btnText">Analyse →</span>
@@ -731,7 +731,7 @@ function downloadPDF(){
   const hdr=document.createElement("div");
   hdr.style.cssText="padding-bottom:16px;border-bottom:3px solid #6366f1;margin-bottom:20px";
   hdr.innerHTML=
-    `<div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#6366f1;margin-bottom:5px">Macro-to-Company Transmission Tester</div>`+
+    `<div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#6366f1;margin-bottom:5px">Signal-to-Stock</div>`+
     `<div style="font-size:20px;font-weight:800;color:#1e1b4b;margin-bottom:4px">${esc(event)}</div>`+
     `<div style="font-size:10px;color:#64748b">Generated ${new Date().toLocaleString("en-GB")}</div>`;
   wrap.appendChild(hdr);

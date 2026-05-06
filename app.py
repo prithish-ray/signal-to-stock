@@ -6,16 +6,20 @@ Flask backend with SSE streaming.
 import os
 import json
 from flask import Flask, render_template, request, Response, stream_with_context
+from dotenv import load_dotenv
 from agent import MacroTransmissionAgent, fetch_recent_macro_events
+
+load_dotenv()
 
 app = Flask(__name__)
 
 FALLBACK_EVENTS = [
+    "Memory suppliers gaining pricing power as hyperscalers compete for guaranteed AI supply",
     "US ISM Manufacturing falls to 46, weakest in two years",
     "OPEC cuts production by 500k bbl/day from next quarter",
     "Fed raises rates by 50bps unexpectedly at emergency meeting",
-    "China manufacturing PMI drops to 48.5, third consecutive contraction",
-    "US 10-year yield spikes to 5.5%, highest since 2007",
+    "China EV manufacturers undercutting Western automakers on price in European markets",
+    "GLP-1 drug adoption accelerating — bariatric surgery and diabetes device volumes declining",
 ]
 
 
