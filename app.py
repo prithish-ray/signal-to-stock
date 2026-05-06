@@ -10,6 +10,14 @@ from agent import MacroTransmissionAgent, fetch_recent_macro_events
 
 app = Flask(__name__)
 
+FALLBACK_EVENTS = [
+    "US ISM Manufacturing falls to 46, weakest in two years",
+    "OPEC cuts production by 500k bbl/day from next quarter",
+    "Fed raises rates by 50bps unexpectedly at emergency meeting",
+    "China manufacturing PMI drops to 48.5, third consecutive contraction",
+    "US 10-year yield spikes to 5.5%, highest since 2007",
+]
+
 
 @app.route("/")
 def index():
@@ -18,11 +26,18 @@ def index():
 
 @app.route("/macro-news")
 def macro_news():
+    error_detail = None
     try:
         events = fetch_recent_macro_events()
-        return {"events": events}
+        if events:
+            return {"events": events, "source": "live"}
+        error_detail = "fetch returned empty list"
     except Exception as e:
-        return {"events": [], "error": str(e)}, 500
+        error_detail = str(e)
+
+    # Log to stdout so Render logs capture it
+    print("macro-news fallback triggered:", error_detail, flush=True)
+    return {"events": FALLBACK_EVENTS, "source": "fallback", "error": error_detail}
 
 
 @app.route("/analyse", methods=["POST"])

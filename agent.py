@@ -310,7 +310,13 @@ def fetch_recent_macro_events():
     Search Tavily for today's major macro economic events, then use Groq to
     distil the results into 5-6 clean, concise event descriptions suitable
     for dropping straight into the analyser input field.
+    Raises on failure so the caller can log and serve fallback events.
     """
+    if not TAVILY_API_KEY:
+        raise ValueError("TAVILY_API_KEY environment variable is not set")
+    if not GROQ_API_KEY:
+        raise ValueError("GROQ_API_KEY environment variable is not set")
+
     tavily = TavilyClient(api_key=TAVILY_API_KEY)
     groq   = Groq(api_key=GROQ_API_KEY)
 
@@ -320,6 +326,7 @@ def fetch_recent_macro_events():
     ]
 
     snippets = []
+    errors = []
     for q in queries:
         try:
             results = tavily.search(q, max_results=6, search_depth="advanced")
@@ -328,11 +335,11 @@ def fetch_recent_macro_events():
                 content = r.get("content", "")[:200].strip()
                 if title:
                     snippets.append("- " + title + ": " + content)
-        except Exception:
-            pass
+        except Exception as e:
+            errors.append(str(e))
 
     if not snippets:
-        return []
+        raise RuntimeError("Tavily returned no results. Errors: " + "; ".join(errors))
 
     context = "\n".join(snippets[:14])
 
@@ -360,4 +367,7 @@ def fetch_recent_macro_events():
     )
 
     data = _safe_json(resp.choices[0].message.content, {"events": []})
-    return data.get("events", [])
+    events = data.get("events", [])
+    if not events:
+        raise RuntimeError("Groq returned empty events list")
+    return events

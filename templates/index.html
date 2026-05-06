@@ -591,14 +591,19 @@ async function loadMacroNewsChips() {
     const resp = await fetch("/macro-news");
     const data = await resp.json();
     const events = data.events || [];
+    const isLive = data.source === "live";
     const row = document.getElementById("examplesRow");
 
     if (!events.length) {
-      document.getElementById("chipsLabel").textContent = "Live events unavailable";
+      document.getElementById("chipsLabel").textContent = "No events available";
       return;
     }
 
-    row.innerHTML = '<span style="font-size:12px;color:var(--muted);align-self:center">Live:</span>';
+    const label = isLive ? "Live:" : "Examples:";
+    const labelStyle = isLive
+      ? 'font-size:12px;color:#22c55e;align-self:center;font-weight:600'
+      : 'font-size:12px;color:var(--muted);align-self:center';
+    row.innerHTML = '<span style="' + labelStyle + '">' + label + '</span>';
     events.forEach(ev => {
       const chip = document.createElement("div");
       chip.className = "chip";
@@ -607,7 +612,7 @@ async function loadMacroNewsChips() {
       row.appendChild(chip);
     });
   } catch (e) {
-    document.getElementById("chipsLabel").textContent = "Could not load live events";
+    document.getElementById("chipsLabel").textContent = "Could not load events";
   }
 }
 
