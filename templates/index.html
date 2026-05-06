@@ -453,6 +453,30 @@
     .items-center { align-items: center; }
     .ml-auto { margin-left: auto; }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    /* ── Download button ── */
+    .btn-download {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 10px 20px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      margin-bottom: 4px;
+    }
+    .btn-download:hover { border-color: var(--accent); background: var(--accent-dim); color: #a5b4fc; }
+    .btn-download.visible { display: flex; }
+    /* ── PDF-only styles (hidden on screen) ── */
+    @media screen { .pdf-only { display: none !important; } }
+    @media print  { .no-print { display: none !important; } }
+  </style>
 </head>
 <body>
 
@@ -517,6 +541,13 @@
     </div>
 
     <!-- ── RIGHT: Transmission Map ── -->
+    <!-- Download button (shown once map is complete) -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+      <button class="btn-download" id="downloadBtn" onclick="downloadPDF()">
+        ⬇ Download PDF
+      </button>
+    </div>
+
     <div class="map-panel hidden" id="mapPanel">
 
       <!-- Event banner (placeholder while loading) -->
@@ -701,6 +732,7 @@ function startAnalysis() {
   document.getElementById("logBox").innerHTML = "";
   document.getElementById("traceStatus").textContent = "Running";
   document.getElementById("mapPanel").classList.remove("hidden");
+  document.getElementById("downloadBtn").classList.remove("visible");
   initSteps();
   resetMap(event);
   logCount = 0;
@@ -777,6 +809,7 @@ function handleMessage(msg) {
       setAllDone();
       log("✅ Transmission map complete!", "done");
       document.getElementById("traceStatus").textContent = "Complete";
+      document.getElementById("downloadBtn").classList.add("visible");
       resetBtn();
       break;
 
@@ -924,6 +957,50 @@ function renderFinalMap(msg) {
   const paras = synth.split(/\n\n+/).filter(Boolean);
   document.getElementById("synthesisBody").innerHTML =
     paras.map(p => `<p>${escHtml(p)}</p>`).join("");
+}
+
+// ── PDF Download ──────────────────────────────────────────────────────────────
+function downloadPDF() {
+  const btn = document.getElementById("downloadBtn");
+  const event = document.getElementById("bannerEvent").textContent || "macro-event";
+  const filename = "transmission-map-" + event.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 50) + ".pdf";
+
+  btn.textContent = "Generating…";
+  btn.disabled = true;
+
+  // Clone the map panel for PDF rendering
+  const source = document.getElementById("mapPanel").cloneNode(true);
+
+  // PDF-specific header
+  const header = document.createElement("div");
+  header.style.cssText = "font-family:system-ui,sans-serif;padding:0 0 20px 0;border-bottom:2px solid #6366f1;margin-bottom:24px;";
+  header.innerHTML = (
+    '<div style="font-size:11px;color:#6366f1;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Macro-to-Company Transmission Tester</div>' +
+    '<div style="font-size:22px;font-weight:800;color:#1e1b4b;margin-bottom:4px">' + escHtml(event) + '</div>' +
+    '<div style="font-size:11px;color:#6b7280;">Generated ' + new Date().toLocaleString("en-GB") + '</div>'
+  );
+  source.prepend(header);
+
+  const opt = {
+    margin:      [12, 12, 12, 12],
+    filename:    filename,
+    image:       { type: "jpeg", quality: 0.95 },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+    jsPDF:       { unit: "mm", format: "a4", orientation: "portrait" },
+    pagebreak:   { mode: ["avoid-all", "css", "legacy"] },
+  };
+
+  // Force light background for PDF rendering
+  source.style.cssText = "background:#fff;color:#111;padding:8px;font-family:system-ui,sans-serif;";
+
+  html2pdf().set(opt).from(source).save().then(() => {
+    btn.textContent = "⬇ Download PDF";
+    btn.disabled = false;
+  }).catch(err => {
+    console.error(err);
+    btn.textContent = "⬇ Download PDF";
+    btn.disabled = false;
+  });
 }
 
 // ── Misc ───────────────────────────────────────────────────────────────────
