@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Macro-to-Company Transmission Tester</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:         #0b0d14;
+      --surface:    #141722;
+      --surface2:   #1c2032;
+      --border:     #252a3e;
+      --border2:    #2e3452;
+      --text:       #e2e8f0;
+      --muted:      #8892a4;
+      --accent:     #6366f1;
+      --accent-dim: #3b3e6e;
+      --neg:        #ef4444;
+      --neg-dim:    #3b1111;
+      --pos:        #22c55e;
+      --pos-dim:    #0d2e1a;
+      --mix:        #f59e0b;
+      --mix-dim:    #2e2209;
+      --high:       #ef4444;
+      --med:        #f59e0b;
+      --low:        #6b7280;
+      --step-done:  #22c55e;
+      --step-act:   #6366f1;
+      --step-wait:  #374151;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --radius: 10px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Layout ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .header-text h1 {
+      font-size: 18px; font-weight: 700; letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    .header-text p {
+      font-size: 12px; color: var(--muted); margin-top: 2px;
+    }
+    .badge {
+      margin-left: auto;
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    main { max-width: 1320px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* ── Input Panel ── */
+    .input-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      margin-bottom: 32px;
+    }
+    .input-panel label {
+      display: block; font-size: 13px; font-weight: 600;
+      color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .input-row {
+      display: flex; gap: 12px; align-items: stretch;
+    }
+    .input-row input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .input-row input:focus { border-color: var(--accent); }
+    .input-row input::placeholder { color: var(--muted); }
+    .btn-analyze {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0 28px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity .2s, transform .1s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .btn-analyze:hover { opacity: .9; }
+    .btn-analyze:active { transform: scale(.98); }
+    .btn-analyze:disabled { opacity: .45; cursor: not-allowed; }
+    .examples {
+      margin-top: 14px;
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .examples span { font-size: 12px; color: var(--muted); align-self: center; }
+    .chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 12px; color: var(--muted);
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ── Two-column body ── */
+    .body-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .body-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Reasoning Trace (left) ── */
+    .trace-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: sticky;
+      top: 24px;
+    }
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .panel-header h2 { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); }
+
+    /* Steps list */
+    .steps-list {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .step-item {
+      display: flex; align-items: flex-start;
+      gap: 12px; padding: 10px 20px;
+      transition: background .2s;
+    }
+    .step-item.active   { background: rgba(99,102,241,.08); }
+    .step-item.done     {}
+    .step-dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      flex-shrink: 0; display: grid; place-items: center;
+      font-size: 11px; font-weight: 700;
+      background: var(--step-wait); color: var(--muted);
+      margin-top: 2px;
+      transition: background .3s, color .3s;
+    }
+    .step-item.active .step-dot {
+      background: var(--accent);
+      color: #fff;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .step-item.done .step-dot {
+      background: var(--step-done);
+      color: #fff;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,.4); }
+      50%      { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
+    }
+    .step-body {}
+    .step-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .step-item.active .step-title { color: #a5b4fc; }
+    .step-detail {
+      font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4;
+    }
+
+    /* Live log */
+    .log-box {
+      padding: 14px 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.7;
+    }
+    .log-box::-webkit-scrollbar { width: 4px; }
+    .log-box::-webkit-scrollbar-track { background: transparent; }
+    .log-box::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+    .log-entry { display: flex; gap: 8px; }
+    .log-ts    { color: var(--accent-dim); flex-shrink: 0; }
+    .log-msg   { color: var(--muted); word-break: break-word; }
+    .log-msg.search  { color: #7dd3fc; }
+    .log-msg.found   { color: #86efac; }
+    .log-msg.reason  { color: #c4b5fd; }
+    .log-msg.done    { color: var(--pos); }
+    .log-msg.error   { color: var(--neg); }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .empty-state .icon { font-size: 36px; margin-bottom: 10px; }
+
+    /* ── Transmission Map (right) ── */
+    .map-panel {
+      display: flex; flex-direction: column; gap: 24px;
+    }
+    .map-panel.hidden { display: none; }
+
+    .map-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .section-title {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--muted);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .count-badge {
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 11px; padding: 2px 8px;
+      border-radius: 20px; font-weight: 600;
+    }
+
+    /* Event summary banner */
+    .event-banner {
+      background: linear-gradient(135deg, #1e1b4b, #1e1040);
+      border: 1px solid #3730a3;
+      border-radius: var(--radius);
+      padding: 20px 24px;
+    }
+    .event-banner .ev-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: #a5b4fc; margin-bottom: 6px;
+    }
+    .event-banner .ev-event {
+      font-size: 20px; font-weight: 800; color: #fff;
+      margin-bottom: 10px; line-height: 1.3;
+    }
+    .event-banner .ev-summary {
+      font-size: 14px; color: #c7d2fe; line-height: 1.6;
+    }
+
+    /* Industry cards */
+    .industry-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+      padding: 16px;
+    }
+    .industry-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      border-left: 3px solid var(--border);
+      transition: border-color .2s;
+    }
+    .industry-card.negative { border-left-color: var(--neg); }
+    .industry-card.positive { border-left-color: var(--pos); }
+    .industry-card.mixed    { border-left-color: var(--mix); }
+
+    .ic-top {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 8px; margin-bottom: 10px;
+    }
+    .ic-name { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .ic-badges { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; flex-shrink: 0; }
+
+    .badge-impact {
+      font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .badge-high    { background: rgba(239,68,68,.15); color: var(--high); }
+    .badge-medium  { background: rgba(245,158,11,.15); color: var(--mix); }
+    .badge-low     { background: rgba(107,114,128,.15); color: var(--low); }
+    .badge-dir-neg { background: var(--neg-dim); color: var(--neg); }
+    .badge-dir-pos { background: var(--pos-dim); color: var(--pos); }
+    .badge-dir-mix { background: var(--mix-dim); color: var(--mix); }
+
+    .ic-mechanism {
+      font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 10px;
+    }
+    .ic-meta {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .ic-tag {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 11px; color: var(--muted);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .ic-tag strong { color: var(--text); }
+
+    /* Chain arrow for second-order */
+    .chain-label {
+      font-size: 11px; color: var(--accent);
+      font-weight: 600; margin-bottom: 6px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .chain-label::before {
+      content: '→';
+      background: var(--accent-dim);
+      color: var(--accent);
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 10px; flex-shrink: 0;
+    }
+
+    /* Company cards */
+    .company-block {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+    }
+    .company-block:last-child { border-bottom: none; }
+    .cb-industry-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--muted);
+      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .order-pill {
+      font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600;
+    }
+    .order-pill.primary   { background: var(--accent-dim); color: var(--accent); }
+    .order-pill.secondary { background: rgba(245,158,11,.15); color: var(--mix); }
+
+    .company-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+    .company-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .cc-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    }
+    .ticker-box {
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 13px; font-weight: 700;
+      padding: 4px 10px; border-radius: 6px;
+      flex-shrink: 0; letter-spacing: 0.5px;
+    }
+    .cc-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .cc-exchange { font-size: 11px; color: var(--muted); }
+    .exposure-dot {
+      margin-left: auto; width: 10px; height: 10px;
+      border-radius: 50%; flex-shrink: 0;
+    }
+    .exposure-dot.high   { background: var(--neg); box-shadow: 0 0 6px var(--neg); }
+    .exposure-dot.medium { background: var(--mix); }
+
+    .cc-why {
+      font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 8px;
+    }
+    .cc-impact {
+      background: var(--surface2);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+    }
+    .cc-impact-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 3px; }
+    .cc-impact-val   { font-size: 12px; color: var(--text); font-weight: 500; }
+    .cc-evidence-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 3px; }
+    .cc-evidence-val   { font-size: 12px; color: #7dd3fc; line-height: 1.4; }
+
+    /* Synthesis */
+    .synthesis-body {
+      padding: 20px 24px;
+      font-size: 14px; line-height: 1.8; color: #cbd5e1;
+    }
+    .synthesis-body p { margin-bottom: 16px; }
+    .synthesis-body p:last-child { margin-bottom: 0; }
+
+    /* Loading skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
+      height: 14px;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(99,102,241,.3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Utilities */
+    .hidden { display: none !important; }
+    .flex   { display: flex; }
+    .gap-8  { gap: 8px; }
+    .items-center { align-items: center; }
+    .ml-auto { margin-left: auto; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+<header>
+  <div class="logo">🌐</div>
+  <div class="header-text">
+    <h1>Macro-to-Company Transmission Tester</h1>
+    <p>Trace macro shocks through industries to listed company earnings — with visible reasoning</p>
+  </div>
+  <span class="badge">Powered by Groq + Tavily</span>
+</header>
+
+<!-- ═══════════════════════════════ MAIN ════════════════════════════════ -->
+<main>
+
+  <!-- INPUT -->
+  <div class="input-panel">
+    <label for="eventInput">Enter a macro event</label>
+    <div class="input-row">
+      <input
+        id="eventInput"
+        type="text"
+        placeholder='e.g. "US ISM Manufacturing falls to 46" or "OPEC cuts 500k bbl/day"'
+        autocomplete="off"
+      />
+      <button class="btn-analyze" id="analyzeBtn" onclick="startAnalysis()">
+        <span id="btnSpinner" class="spinner hidden"></span>
+        <span id="btnText">Analyze →</span>
+      </button>
+    </div>
+    <div class="examples">
+      <span>Try:</span>
+      <div class="chip" onclick="setExample(this)">US ISM Manufacturing falls to 46</div>
+      <div class="chip" onclick="setExample(this)">OPEC cuts production by 500k bbl/day</div>
+      <div class="chip" onclick="setExample(this)">Fed raises rates by 50bps unexpectedly</div>
+      <div class="chip" onclick="setExample(this)">China PMI drops to 48.5</div>
+      <div class="chip" onclick="setExample(this)">US 10-year yield spikes to 5.5%</div>
+    </div>
+  </div>
+
+  <!-- BODY GRID -->
+  <div class="body-grid">
+
+    <!-- ── LEFT: Reasoning Trace ── -->
+    <div class="trace-panel">
+      <div class="panel-header">
+        <span>🧠</span>
+        <h2>Agent Reasoning</h2>
+        <span id="traceStatus" class="ml-auto" style="font-size:12px;color:var(--muted)">Idle</span>
+      </div>
+
+      <div class="steps-list" id="stepsList">
+        <!-- Steps injected by JS -->
+      </div>
+
+      <div class="log-box" id="logBox">
+        <div class="empty-state" id="emptyTrace">
+          <div class="icon">🔬</div>
+          Enter a macro event above to begin analysis
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT: Transmission Map ── -->
+    <div class="map-panel hidden" id="mapPanel">
+
+      <!-- Event banner (placeholder while loading) -->
+      <div class="event-banner" id="eventBanner">
+        <div class="ev-label">Macro Event</div>
+        <div class="ev-event" id="bannerEvent">—</div>
+        <div class="ev-summary" id="bannerSummary">
+          <div class="skeleton" style="width:80%;margin-bottom:6px"></div>
+          <div class="skeleton" style="width:60%"></div>
+        </div>
+      </div>
+
+      <!-- Primary Industries -->
+      <div class="map-section" id="primarySection">
+        <div class="section-header">
+          <div class="section-title">⚡ Primary (First-Order) Impacts <span class="count-badge" id="primaryCount">—</span></div>
+        </div>
+        <div class="industry-grid" id="primaryGrid">
+          <!-- cards injected -->
+        </div>
+      </div>
+
+      <!-- Second-Order -->
+      <div class="map-section" id="secondarySection">
+        <div class="section-header">
+          <div class="section-title">🔗 Second-Order Ripple Effects <span class="count-badge" id="secondaryCount">—</span></div>
+        </div>
+        <div class="industry-grid" id="secondaryGrid"></div>
+      </div>
+
+      <!-- Companies -->
+      <div class="map-section" id="companiesSection">
+        <div class="section-header">
+          <div class="section-title">🏢 Most-Exposed Listed Companies <span class="count-badge" id="companyCount">—</span></div>
+        </div>
+        <div id="companiesBody"></div>
+      </div>
+
+      <!-- Synthesis -->
+      <div class="map-section" id="synthesisSection">
+        <div class="section-header">
+          <div class="section-title">📋 Analyst Synthesis</div>
+        </div>
+        <div class="synthesis-body" id="synthesisBody">
+          <div class="skeleton" style="width:100%;margin-bottom:8px"></div>
+          <div class="skeleton" style="width:90%;margin-bottom:8px"></div>
+          <div class="skeleton" style="width:80%"></div>
+        </div>
+      </div>
+
+    </div><!-- /map-panel -->
+  </div><!-- /body-grid -->
+
+</main>
+
+<!-- ═══════════════════════════════ SCRIPT ═══════════════════════════════ -->
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let currentSource = null;
+
+const STEP_DEFS = [
+  { id: 1, label: "Search event context",          detail: "Querying Tavily for macro event + industry data" },
+  { id: 2, label: "Primary industries",            detail: "First-order causal impacts (direct hit)" },
+  { id: 3, label: "Second-order ripple effects",   detail: "Supply-chain & financial contagion mapping" },
+  { id: 4, label: "Company exposure",              detail: "Identifying most-exposed listed stocks" },
+  { id: 5, label: "Analyst synthesis",             detail: "Writing transmission map narrative" },
+];
+
+// ── Init ───────────────────────────────────────────────────────────────────
+function initSteps() {
+  const list = document.getElementById("stepsList");
+  list.innerHTML = "";
+  STEP_DEFS.forEach(s => {
+    const el = document.createElement("div");
+    el.className = "step-item";
+    el.id = `step-${s.id}`;
+    el.innerHTML = `
+      <div class="step-dot" id="dot-${s.id}">${s.id}</div>
+      <div class="step-body">
+        <div class="step-title">${s.label}</div>
+        <div class="step-detail" id="detail-${s.id}">${s.detail}</div>
+      </div>`;
+    list.appendChild(el);
+  });
+}
+
+function setStepActive(n) {
+  STEP_DEFS.forEach(s => {
+    const el = document.getElementById(`step-${s.id}`);
+    if (!el) return;
+    el.classList.remove("active", "done");
+    if (s.id < n) {
+      el.classList.add("done");
+      document.getElementById(`dot-${s.id}`).textContent = "✓";
+    } else if (s.id === n) {
+      el.classList.add("active");
+      document.getElementById(`dot-${s.id}`).textContent = s.id;
+    }
+  });
+}
+
+function setAllDone() {
+  STEP_DEFS.forEach(s => {
+    const el = document.getElementById(`step-${s.id}`);
+    if (!el) return;
+    el.classList.remove("active");
+    el.classList.add("done");
+    document.getElementById(`dot-${s.id}`).textContent = "✓";
+  });
+}
+
+// ── Log ────────────────────────────────────────────────────────────────────
+let logCount = 0;
+function log(msg, cls = "") {
+  const box = document.getElementById("logBox");
+  const empty = document.getElementById("emptyTrace");
+  if (empty) empty.remove();
+
+  const ts = new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const entry = document.createElement("div");
+  entry.className = "log-entry";
+  entry.innerHTML = `<span class="log-ts">${ts}</span><span class="log-msg ${cls}">${escHtml(msg)}</span>`;
+  box.appendChild(entry);
+  box.scrollTop = box.scrollHeight;
+  logCount++;
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// ── Example chips ──────────────────────────────────────────────────────────
+function setExample(el) {
+  document.getElementById("eventInput").value = el.textContent;
+}
+
+// ── Main analysis entry point ──────────────────────────────────────────────
+function startAnalysis() {
+  const input = document.getElementById("eventInput");
+  const event = input.value.trim();
+  if (!event) { input.focus(); return; }
+
+  if (currentSource) { currentSource.close(); currentSource = null; }
+
+  // Reset UI
+  document.getElementById("analyzeBtn").disabled = true;
+  document.getElementById("btnSpinner").classList.remove("hidden");
+  document.getElementById("btnText").textContent = "Analyzing…";
+  document.getElementById("logBox").innerHTML = "";
+  document.getElementById("traceStatus").textContent = "Running";
+  document.getElementById("mapPanel").classList.remove("hidden");
+  initSteps();
+  resetMap(event);
+  logCount = 0;
+
+  // POST → SSE
+  fetch("/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ event }),
+  }).then(resp => {
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    function pump() {
+      return reader.read().then(({ done, value }) => {
+        if (done) return;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop();
+        parts.forEach(part => {
+          if (part.startsWith("data: ")) {
+            try {
+              const msg = JSON.parse(part.slice(6));
+              handleMessage(msg);
+            } catch {}
+          }
+        });
+        return pump();
+      });
+    }
+    return pump();
+  }).catch(err => {
+    log("Connection error: " + err, "error");
+    resetBtn();
+  });
+}
+
+// ── SSE message handler ────────────────────────────────────────────────────
+function handleMessage(msg) {
+  switch (msg.type) {
+
+    case "step_start":
+      setStepActive(msg.step);
+      log(`▶  Step ${msg.step}: ${msg.title}`, "reason");
+      if (msg.detail) log(`   ${msg.detail}`);
+      break;
+
+    case "searches":
+      msg.queries.forEach(q => {
+        log(`🔍 Searched: "${q.query}"`, "search");
+        if (q.results && q.results.length) {
+          q.results.slice(0, 3).forEach(r => log(`   ↳ ${r}`, "found"));
+        }
+      });
+      break;
+
+    case "search_note":
+      log(`🔍 ${msg.message}`, "search");
+      if (msg.results) msg.results.forEach(r => log(`   ↳ ${r}`, "found"));
+      break;
+
+    case "step_result":
+      switch (msg.step) {
+        case 2: renderPrimary(msg.data);   break;
+        case 3: renderSecondary(msg.data); break;
+        case 4: renderCompanies(msg.data); break;
+      }
+      log(`✅ Step ${msg.step} complete`, "done");
+      break;
+
+    case "transmission_map":
+      renderFinalMap(msg);
+      setAllDone();
+      log("✅ Transmission map complete!", "done");
+      document.getElementById("traceStatus").textContent = "Complete";
+      resetBtn();
+      break;
+
+    case "error":
+      log("❌ Error: " + msg.message, "error");
+      document.getElementById("traceStatus").textContent = "Error";
+      resetBtn();
+      break;
+
+    case "done":
+      resetBtn();
+      break;
+  }
+}
+
+// ── Render helpers ─────────────────────────────────────────────────────────
+function resetMap(event) {
+  document.getElementById("bannerEvent").textContent = event;
+  document.getElementById("bannerSummary").innerHTML = `
+    <div class="skeleton" style="width:80%;margin-bottom:6px"></div>
+    <div class="skeleton" style="width:60%"></div>`;
+  document.getElementById("primaryGrid").innerHTML   = "";
+  document.getElementById("secondaryGrid").innerHTML = "";
+  document.getElementById("companiesBody").innerHTML = "";
+  document.getElementById("synthesisBody").innerHTML = `
+    <div class="skeleton" style="width:100%;margin-bottom:8px"></div>
+    <div class="skeleton" style="width:90%;margin-bottom:8px"></div>
+    <div class="skeleton" style="width:80%"></div>`;
+  document.getElementById("primaryCount").textContent   = "—";
+  document.getElementById("secondaryCount").textContent = "—";
+  document.getElementById("companyCount").textContent   = "—";
+}
+
+function dirClass(d) {
+  if (!d) return "";
+  d = d.toLowerCase();
+  if (d.includes("neg")) return "negative";
+  if (d.includes("pos")) return "positive";
+  return "mixed";
+}
+function dirBadge(d) {
+  if (!d) return "";
+  d = d.toLowerCase();
+  if (d.includes("neg")) return `<span class="badge-impact badge-dir-neg">▼ Negative</span>`;
+  if (d.includes("pos")) return `<span class="badge-impact badge-dir-pos">▲ Positive</span>`;
+  return `<span class="badge-impact badge-dir-mix">~ Mixed</span>`;
+}
+function magBadge(m) {
+  if (!m) return "";
+  m = m.toLowerCase();
+  if (m.includes("high"))   return `<span class="badge-impact badge-high">HIGH</span>`;
+  if (m.includes("med"))    return `<span class="badge-impact badge-medium">MED</span>`;
+  return `<span class="badge-impact badge-low">LOW</span>`;
+}
+
+function renderIndustryCard(ind, extra = "") {
+  return `
+    <div class="industry-card ${dirClass(ind.impact_direction)}">
+      ${extra}
+      <div class="ic-top">
+        <div class="ic-name">${escHtml(ind.industry || "")}</div>
+        <div class="ic-badges">
+          ${magBadge(ind.impact_magnitude)}
+          ${dirBadge(ind.impact_direction)}
+        </div>
+      </div>
+      <div class="ic-mechanism">${escHtml(ind.mechanism || ind.causal_chain || "")}</div>
+      <div class="ic-meta">
+        ${ind.line_item_affected ? `<div class="ic-tag">📊 <strong>${escHtml(ind.line_item_affected)}</strong></div>` : ""}
+        ${ind.lag_quarters       ? `<div class="ic-tag">⏱ <strong>${escHtml(ind.lag_quarters)} Q lag</strong></div>` : ""}
+        ${ind.confidence         ? `<div class="ic-tag">Confidence: <strong>${escHtml(ind.confidence)}</strong></div>` : ""}
+      </div>
+    </div>`;
+}
+
+function renderPrimary(data) {
+  const list = data.primary_industries || [];
+  document.getElementById("primaryCount").textContent = list.length;
+  if (data.event_summary) {
+    document.getElementById("bannerSummary").textContent = data.event_summary;
+  }
+  document.getElementById("primaryGrid").innerHTML = list.map(i => renderIndustryCard(i)).join("");
+  log(`   Identified ${list.length} primary industries`);
+}
+
+function renderSecondary(data) {
+  const list = data.second_order_industries || [];
+  document.getElementById("secondaryCount").textContent = list.length;
+  document.getElementById("secondaryGrid").innerHTML = list.map(i => {
+    const chain = i.triggered_by
+      ? `<div class="chain-label">via ${escHtml(i.triggered_by)}</div>` : "";
+    return renderIndustryCard(i, chain);
+  }).join("");
+  log(`   Identified ${list.length} second-order industries`);
+}
+
+function renderCompanies(data) {
+  const blocks = data.company_exposures || [];
+  let totalCompanies = 0;
+  const html = blocks.map(block => {
+    const comps = block.companies || [];
+    totalCompanies += comps.length;
+    const orderClass = (block.order || "").toLowerCase() === "primary" ? "primary" : "secondary";
+    const cards = comps.map(c => `
+      <div class="company-card">
+        <div class="cc-header">
+          <div class="ticker-box">${escHtml(c.ticker || "N/A")}</div>
+          <div>
+            <div class="cc-name">${escHtml(c.name || "")}</div>
+            <div class="cc-exchange">${escHtml(c.exchange || "")}</div>
+          </div>
+          <div class="exposure-dot ${(c.exposure_level||"").toLowerCase()}" title="${escHtml(c.exposure_level||"")} exposure"></div>
+        </div>
+        <div class="cc-why">${escHtml(c.why_exposed || "")}</div>
+        <div class="cc-impact">
+          <div class="cc-impact-label">Financial Impact</div>
+          <div class="cc-impact-val">${escHtml(c.financial_impact || "")}</div>
+        </div>
+        <div class="cc-evidence-label">Watch for</div>
+        <div class="cc-evidence-val">${escHtml(c.confirming_evidence || "")}</div>
+      </div>`).join("");
+
+    return `
+      <div class="company-block">
+        <div class="cb-industry-label">
+          ${escHtml(block.industry || "")}
+          <span class="order-pill ${orderClass}">${escHtml(block.order || "")}</span>
+        </div>
+        <div class="company-cards">${cards}</div>
+      </div>`;
+  }).join("");
+
+  document.getElementById("companyCount").textContent = totalCompanies;
+  document.getElementById("companiesBody").innerHTML = html;
+  log(`   Mapped ${totalCompanies} companies across ${blocks.length} sectors`);
+}
+
+function renderFinalMap(msg) {
+  // Banner
+  if (msg.event_summary) {
+    document.getElementById("bannerSummary").textContent = msg.event_summary;
+  }
+  // Synthesis — split on double newlines → paragraphs
+  const synth = (msg.synthesis || "").trim();
+  const paras = synth.split(/\n\n+/).filter(Boolean);
+  document.getElementById("synthesisBody").innerHTML =
+    paras.map(p => `<p>${escHtml(p)}</p>`).join("");
+}
+
+// ── Misc ───────────────────────────────────────────────────────────────────
+function resetBtn() {
+  document.getElementById("analyzeBtn").disabled = false;
+  document.getElementById("btnSpinner").classList.add("hidden");
+  document.getElementById("btnText").textContent = "Analyze →";
+}
+
+// Allow Enter key to trigger analysis
+document.addEventListener("DOMContentLoaded", () => {
+  initSteps();
+  document.getElementById("eventInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") startAnalysis();
+  });
+});
+</script>
+</body>
+</html>

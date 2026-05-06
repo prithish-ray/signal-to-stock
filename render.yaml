@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: macro-transmission-tester
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --timeout 300 --workers 2 --threads 4 --worker-class gthread
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false        # set manually in Render dashboard
+      - key: TAVILY_API_KEY
+        sync: false        # set manually in Render dashboard
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+    autoDeploy: true
