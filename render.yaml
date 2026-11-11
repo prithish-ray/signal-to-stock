@@ -10,5 +10,5 @@ services:
       - key: TAVILY_API_KEY
         sync: false        # set manually in Render dashboard
       - key: GROQ_MODEL
-        value: llama-3.3-70b-versatile
+        value: openai/gpt-oss-120b
     autoDeploy: true
